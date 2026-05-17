@@ -60,7 +60,6 @@
                 </button>
             </div>
             
-            <!-- Formulario Email/Password (oculto inicialmente) -->
             <div id="email-auth-section" style="display: none;" class="mt-20">
                 <div class="input-group">
                     <i class="fa-solid fa-envelope input-icon"></i>
@@ -102,7 +101,7 @@
                 </button>
             </div>
             
-            <div class="user-profile">
+            <div class="user-profile" onclick="UI.showSettingsTab()" style="cursor: pointer;">
                 <img id="user-avatar" src="https://ui-avatars.com/api/?name=User&background=6C5CE7&color=fff&size=40" alt="Avatar" class="avatar">
                 <div class="user-details">
                     <span id="user-name" class="user-name">Usuario</span>
@@ -143,11 +142,56 @@
                 <button class="btn btn-outline btn-sm" onclick="UI.showPlansModal()">
                     <i class="fa-solid fa-crown"></i> Mejorar plan
                 </button>
-                <button class="btn btn-text btn-sm" onclick="Auth.signOut()">
-                    <i class="fa-solid fa-right-from-bracket"></i> Salir
+                <button class="btn btn-text btn-sm" onclick="UI.showSettingsTab()">
+                    <i class="fa-solid fa-gear"></i> Ajustes
                 </button>
             </div>
         </aside>
+        
+        <!-- Panel de Ajustes (se abre sobre el sidebar) -->
+        <div id="settings-panel" class="glass" style="display: none;">
+            <div class="settings-header">
+                <h3><i class="fa-solid fa-gear"></i> Ajustes</h3>
+                <button class="btn-icon" onclick="UI.closeSettingsTab()">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h4>Perfil</h4>
+                    <div class="profile-avatar-edit">
+                        <img id="settings-avatar" src="https://ui-avatars.com/api/?name=User&background=6C5CE7&color=fff&size=100" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%;">
+                        <button class="btn btn-outline btn-sm" onclick="UI.changeAvatar()">
+                            <i class="fa-solid fa-camera"></i> Cambiar
+                        </button>
+                    </div>
+                    <div class="input-group mt-10">
+                        <label>Nombre de usuario</label>
+                        <input type="text" id="settings-username" class="input-field" placeholder="Tu nombre">
+                    </div>
+                    <div class="input-group mt-10">
+                        <label>Email</label>
+                        <input type="email" id="settings-email" class="input-field" readonly>
+                    </div>
+                    <button class="btn btn-primary btn-sm mt-10" onclick="UI.saveSettings()">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar
+                    </button>
+                </div>
+                
+                <div class="settings-section mt-20">
+                    <h4>Cuenta</h4>
+                    <button class="btn btn-outline btn-sm" onclick="UI.showPlansModal()">
+                        <i class="fa-solid fa-crown"></i> Gestionar plan
+                    </button>
+                    <button class="btn btn-outline btn-sm mt-10" onclick="Auth.signOut()">
+                        <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+                    </button>
+                    <button class="btn btn-danger btn-sm mt-10" onclick="UI.deleteAccount()">
+                        <i class="fa-solid fa-trash"></i> Eliminar cuenta
+                    </button>
+                </div>
+            </div>
+        </div>
         
         <!-- Contenido principal -->
         <main id="main-content">
@@ -171,27 +215,23 @@
                 </div>
             </header>
             
-            <!-- Toolbar -->
             <div class="toolbar" id="toolbar" style="display: none;">
-                <button class="btn-icon" onclick="UI.downloadSelected()" title="Descargar"><i class="fa-solid fa-download"></i></button>
-                <button class="btn-icon" onclick="UI.shareSelected()" title="Compartir"><i class="fa-solid fa-share"></i></button>
-                <button class="btn-icon" onclick="UI.moveToTrashSelected()" title="Mover a papelera"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn-icon" onclick="UI.downloadSelected()"><i class="fa-solid fa-download"></i></button>
+                <button class="btn-icon" onclick="UI.shareSelected()"><i class="fa-solid fa-share"></i></button>
+                <button class="btn-icon" onclick="UI.moveToTrashSelected()"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn-icon" onclick="UI.restoreSelected()" id="restore-btn" style="display: none;"><i class="fa-solid fa-rotate-left"></i> Restaurar</button>
+                <button class="btn-icon" onclick="UI.deletePermanentlySelected()" id="delete-forever-btn" style="display: none;"><i class="fa-solid fa-delete-left"></i> Eliminar para siempre</button>
                 <span id="selected-count" class="text-secondary ml-10"></span>
             </div>
             
-            <!-- Lista de archivos -->
-            <div id="file-list" class="file-grid">
-                <!-- Renderizado dinámico -->
-            </div>
+            <div id="file-list" class="file-grid"></div>
             
-            <!-- Estado vacío -->
             <div id="empty-state" class="empty-state" style="display: none;">
                 <i class="fa-solid fa-cloud-arrow-up fa-4x mb-20" style="color: #6C5CE7; opacity: 0.5;"></i>
                 <h3>No hay archivos aquí</h3>
                 <p class="text-secondary">Sube archivos o crea carpetas para empezar</p>
             </div>
             
-            <!-- Loader de contenido -->
             <div id="content-loader" class="content-loader" style="display: none;">
                 <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
                 <p class="text-secondary">Cargando archivos...</p>
@@ -227,22 +267,43 @@
         </div>
     </div>
     
-    <!-- Botón flotante IA -->
     <button id="fab-ia" class="fab" onclick="UI.toggleIAPanel()" title="Abrir Chat IA">
         <i class="fa-solid fa-robot"></i>
     </button>
 
+    <!-- ========== PANEL DE SUBIDAS (estilo Google Drive) ========== -->
+    <div id="upload-panel" class="upload-panel glass" style="display: none;">
+        <div class="upload-panel-header">
+            <h4><i class="fa-solid fa-upload"></i> Subiendo archivos</h4>
+            <button class="btn-icon" onclick="UI.toggleUploadPanel()">
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+        </div>
+        <div id="upload-list" class="upload-list"></div>
+    </div>
+
     <!-- ========== MODALES ========== -->
     <div id="modal-overlay" class="modal-overlay" style="display: none;" onclick="UI.closeModal()">
-        <div id="modal-content" class="modal-content glass" onclick="event.stopPropagation()">
-            <!-- Contenido dinámico -->
-        </div>
+        <div id="modal-content" class="modal-content glass" onclick="event.stopPropagation()"></div>
     </div>
 
     <!-- ========== NOTIFICACIONES ========== -->
     <div id="notification-container" class="notification-container"></div>
 
-    <!-- Scripts en orden -->
+    <!-- ========== PREVIEW DE ARCHIVOS ========== -->
+    <div id="file-preview-overlay" class="modal-overlay" style="display: none;" onclick="UI.closeFilePreview()">
+        <div id="file-preview-content" class="file-preview-content glass" onclick="event.stopPropagation()">
+            <div class="file-preview-header">
+                <span id="file-preview-name">Archivo</span>
+                <div>
+                    <button class="btn-icon" onclick="UI.downloadCurrentPreview()"><i class="fa-solid fa-download"></i></button>
+                    <button class="btn-icon" onclick="UI.closeFilePreview()"><i class="fa-solid fa-times"></i></button>
+                </div>
+            </div>
+            <div id="file-preview-body" class="file-preview-body"></div>
+        </div>
+    </div>
+
     <script src="js/utils.js"></script>
     <script src="js/plans.js"></script>
     <script src="js/firebase-config.js"></script>
