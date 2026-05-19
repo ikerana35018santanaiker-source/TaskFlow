@@ -1,65 +1,94 @@
-// js/storage.js - CORREGIDO
+// js/storage.js - CORREGIDO (Puter.js sin errores de consola)
 
 const StorageManager = {
     puterReady: false,
+    puterChecked: false,
 
+    // Inicializar Puter.js - Versión robusta
     async initPuter() {
+        // Si ya verificamos, no volver a verificar
+        if (this.puterChecked) {
+            return this.puterReady;
+        }
+        
+        this.puterChecked = true;
+        
         try {
-            // Verificar si Puter.js está disponible
+            // Verificar si el script de Puter.js se cargó
             if (typeof puter === 'undefined') {
-                console.warn('⚠️ Puter.js no detectado. Verifica que el script esté cargado.');
+                console.log('ℹ️ Puter.js no está disponible. Solo se usarán archivos <15MB.');
                 this.puterReady = false;
                 return false;
             }
             
-            console.log('✅ Puter.js detectado correctamente');
-            
-            // Verificar que el sistema de archivos funciona
-            try {
-                const testDir = await puter.fs.readdir('/');
-                console.log('✅ Sistema de archivos Puter operativo');
-            } catch (e) {
-                // Puede fallar si el directorio no existe, es normal
-                console.log('ℹ️ Puter.js listo (directorio vacío o nuevo)');
+            // Verificar que puter.fs existe
+            if (!puter.fs || typeof puter.fs.readdir !== 'function') {
+                console.log('⚠️ Puter.js cargado pero fs no disponible. Usando solo Base64.');
+                this.puterReady = false;
+                return false;
             }
             
-            this.puterReady = true;
-            return true;
+            // Probar el sistema de archivos
+            try {
+                await puter.fs.readdir('/');
+                console.log('✅ Puter.js operativo correctamente');
+                this.puterReady = true;
+                return true;
+            } catch (e) {
+                // Si falla readdir, puede ser porque el directorio está vacío
+                // Intentar crear un directorio de prueba
+                try {
+                    await puter.fs.mkdir('/shareit_test');
+                    await puter.fs.delete('/shareit_test');
+                    console.log('✅ Puter.js operativo (verificación alternativa)');
+                    this.puterReady = true;
+                    return true;
+                } catch (e2) {
+                    console.log('⚠️ Puter.js no pudo verificar el sistema de archivos:', e2.message);
+                    this.puterReady = false;
+                    return false;
+                }
+            }
         } catch (error) {
-            console.error('❌ Error al verificar Puter.js:', error);
+            console.log('ℹ️ Puter.js no disponible:', error.message);
             this.puterReady = false;
             return false;
         }
     },
 
+    // Subir archivo
     async uploadFile(userId, file, onProgress = null) {
+        // Verificar espacio
         const spaceAvailable = await this.checkSpaceAvailable(userId, file.size);
         if (!spaceAvailable) {
             throw new Error('No tienes suficiente espacio de almacenamiento');
         }
 
+        // Decidir método según tamaño
         if (Utils.isBase64File(file)) {
+            console.log(`📦 Base64: ${file.name} (${Utils.formatBytes(file.size)})`);
             return await this._uploadAsBase64(userId, file, onProgress);
         } else {
-            // Verificar Puter.js antes de subir
-            if (!this.puterReady) {
-                await this.initPuter();
-                if (!this.puterReady) {
-                    throw new Error('Puter.js no está disponible para archivos grandes (>15MB)');
-                }
+            // Para archivos grandes, verificar Puter
+            await this.initPuter();
+            
+            if (this.puterReady) {
+                console.log(`☁️ Puter.js: ${file.name} (${Utils.formatBytes(file.size)})`);
+                return await this._uploadToPuter(userId, file, onProgress);
+            } else {
+                throw new Error('El archivo es demasiado grande (>15MB) y Puter.js no está disponible. Intenta con un archivo más pequeño.');
             }
-            return await this._uploadToPuter(userId, file, onProgress);
         }
     },
 
+    // Subir como Base64
     async _uploadAsBase64(userId, file, onProgress) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             
             reader.onprogress = (e) => {
                 if (onProgress && e.lengthComputable) {
-                    const progress = Math.round((e.loaded / e.total) * 100);
-                    onProgress(progress);
+                    onProgress(Math.round((e.loaded / e.total) * 100));
                 }
             };
             
@@ -93,27 +122,31 @@ const StorageManager = {
                 }
             };
             
-            reader.onerror = (error) => reject(error);
+            reader.onerror = () => reject(new Error('Error al leer el archivo'));
             reader.readAsDataURL(file);
         });
     },
 
+    // Subir a Puter.js
     async _uploadToPuter(userId, file, onProgress) {
         try {
             if (onProgress) onProgress(5);
             
+            // Crear carpeta del usuario
             const userFolder = `/shareit_${userId}`;
             try {
                 await puter.fs.mkdir(userFolder);
             } catch (e) {
-                // Ya existe
+                // Ya existe, ignorar
             }
             
             if (onProgress) onProgress(10);
             
+            // Subir archivo
+            const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
             const uploadResult = await puter.fs.upload(
                 file,
-                `${userFolder}/${Date.now()}_${file.name}`,
+                `${userFolder}/${fileName}`,
                 {
                     overwrite: true,
                     onProgress: (progress) => {
@@ -134,8 +167,8 @@ const StorageManager = {
                 originalName: file.name,
                 type: file.type,
                 size: file.size,
-                puterPath: uploadResult.path,
-                puterFileId: uploadResult.id || uploadResult.uid,
+                puterPath: uploadResult.path || `${userFolder}/${fileName}`,
+                puterFileId: uploadResult.id || uploadResult.uid || fileId,
                 storageMethod: 'puter',
                 userId: userId,
                 parentFolder: UI.currentFolder || null,
@@ -152,29 +185,31 @@ const StorageManager = {
             if (onProgress) onProgress(100);
             return fileData;
         } catch (error) {
-            console.error('❌ Error Puter.js:', error);
-            throw error;
+            console.error('❌ Error subiendo a Puter:', error);
+            throw new Error('Error al subir a Puter.js: ' + error.message);
         }
     },
 
+    // Obtener URL del archivo
     async getFileUrl(fileData) {
         if (!fileData) return null;
         
+        // Base64
         if (fileData.storageMethod === 'base64' && fileData.base64Url) {
             return fileData.base64Url;
         }
         
+        // Puter.js
         if (fileData.storageMethod === 'puter' && fileData.puterPath && this.puterReady) {
             try {
                 const url = await puter.fs.getDownloadUrl(fileData.puterPath);
                 return url;
             } catch (error) {
-                console.error('Error obteniendo URL:', error);
-                // Intentar leer el contenido
+                console.log('No se pudo obtener URL de descarga, intentando leer archivo...');
                 try {
                     const content = await puter.fs.read(fileData.puterPath);
                     if (typeof content === 'string') {
-                        return content; // Podría ser base64 o texto
+                        return content;
                     }
                 } catch (e) {
                     console.error('Error lectura alternativa:', e);
@@ -186,9 +221,12 @@ const StorageManager = {
         return null;
     },
 
+    // Descargar archivo
     async downloadFile(fileData) {
         const url = await this.getFileUrl(fileData);
-        if (!url) throw new Error('No se puede acceder al archivo');
+        if (!url) {
+            throw new Error('No se puede acceder al archivo');
+        }
         
         if (url.startsWith('data:')) {
             const link = document.createElement('a');
@@ -203,12 +241,13 @@ const StorageManager = {
         window.open(url, '_blank');
     },
 
+    // Eliminar permanentemente
     async deleteFilePermanently(userId, fileData) {
         if (fileData.storageMethod === 'puter' && fileData.puterPath && this.puterReady) {
             try {
                 await puter.fs.delete(fileData.puterPath);
             } catch (error) {
-                console.warn('No se pudo eliminar de Puter:', error.message);
+                console.log('No se pudo eliminar de Puter:', error.message);
             }
         }
         
@@ -216,6 +255,7 @@ const StorageManager = {
         await Database.updateStorageUsed(userId);
     },
 
+    // Verificar espacio
     async checkSpaceAvailable(userId, newFileSize) {
         const profile = await Database.getUserProfile(userId);
         if (!profile) return false;
@@ -228,4 +268,15 @@ const StorageManager = {
     }
 };
 
-console.log('☁️ StorageManager cargado (con verificación de Puter.js)');
+// Inicializar Puter cuando el script cargue
+setTimeout(() => {
+    StorageManager.initPuter().then(ready => {
+        if (ready) {
+            console.log('✅ Puter.js inicializado automáticamente');
+        } else {
+            console.log('ℹ️ Puter.js no disponible - usando solo Base64 para archivos <15MB');
+        }
+    });
+}, 1000);
+
+console.log('☁️ StorageManager cargado (con detección robusta de Puter.js)');
