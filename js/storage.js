@@ -1,268 +1,232 @@
-// js/storage.js — CORREGIDO: Puter.js + Base64
+// js/storage.js — File storage logic (Base64 for <15MB, Puter.js for larger)
+import { db } from "./firebase.js";
+import {
+  ref, set, get, push, remove, update, onValue, off
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { showToast } from "./ui.js";
 
-const StorageManager = {
-    puterReady: false,
-    puterChecked: false,
+const SMALL_FILE_LIMIT = 15 * 1024 * 1024; // 15 MB in bytes
+const FREE_PLAN_LIMIT = 15 * 1024 * 1024 * 1024; // 15 GB
 
-    // ── Inicializar Puter.js ──────────────────────────────────────────────
-    async initPuter() {
-        if (this.puterChecked) return this.puterReady;
-        this.puterChecked = true;
+// ===== GET USER DB REF =====
+export function userRef(uid, path = "") {
+  return ref(db, `users/${uid}${path ? "/" + path : ""}`);
+}
 
-        // puter.js necesita tiempo para cargar y autenticarse
-        return new Promise(resolve => {
-            let tries = 0;
-            const check = () => {
-                tries++;
-                if (typeof puter !== 'undefined' && puter.fs) {
-                    // Probar con una operación real
-                    puter.fs.stat('/')
-                        .then(() => {
-                            this.puterReady = true;
-                            console.log('✅ Puter.js operativo');
-                            resolve(true);
-                        })
-                        .catch(() => {
-                            // stat puede fallar pero puter puede estar operativo
-                            // intentar un mkdir de prueba
-                            puter.fs.mkdir('/__shareit_probe__', { overwrite: true })
-                                .then(() => {
-                                    this.puterReady = true;
-                                    puter.fs.delete('/__shareit_probe__').catch(() => {});
-                                    console.log('✅ Puter.js operativo (probe)');
-                                    resolve(true);
-                                })
-                                .catch(err => {
-                                    // Puter está pero no dejó escribir — lo consideramos operativo
-                                    // (errores de auth pueden ser transitorios)
-                                    this.puterReady = true;
-                                    console.warn('⚠️ Puter.js disponible con restricciones:', err.message);
-                                    resolve(true);
-                                });
-                        });
-                } else if (tries < 15) {
-                    // Esperar hasta 7.5 s en pasos de 500 ms
-                    setTimeout(check, 500);
-                } else {
-                    console.info('ℹ️ Puter.js no disponible — solo Base64 (<15 MB)');
-                    this.puterReady = false;
-                    resolve(false);
-                }
-            };
-            check();
-        });
-    },
+// ===== GET USER STORAGE USAGE =====
+export async function getStorageUsage(uid) {
+  try {
+    const snap = await get(userRef(uid, "meta/storageUsed"));
+    return snap.exists() ? snap.val() : 0;
+  } catch { return 0; }
+}
 
-    // ── Subir archivo ─────────────────────────────────────────────────────
-    async uploadFile(userId, file, onProgress = null) {
-        // Verificar espacio
-        const ok = await this.checkSpaceAvailable(userId, file.size);
-        if (!ok) throw new Error('No tienes suficiente espacio de almacenamiento');
+// ===== UPDATE STORAGE USAGE =====
+export async function updateStorageUsage(uid, delta) {
+  const current = await getStorageUsage(uid);
+  const newVal = Math.max(0, current + delta);
+  await set(userRef(uid, "meta/storageUsed"), newVal);
+  return newVal;
+}
 
-        if (Utils.isBase64File(file)) {
-            console.log(`📦 Base64: ${file.name} (${Utils.formatBytes(file.size)})`);
-            return await this._uploadAsBase64(userId, file, onProgress);
-        }
+// ===== GET STORAGE LIMIT =====
+export async function getStorageLimit(uid) {
+  try {
+    const snap = await get(userRef(uid, "meta/plan"));
+    const plan = snap.exists() ? snap.val() : "free";
+    const limits = {
+      free: 15 * 1024 * 1024 * 1024,
+      plus: 125 * 1024 * 1024 * 1024,
+      pro: 350 * 1024 * 1024 * 1024,
+      "business-free": 5 * 1024 * 1024 * 1024,
+      "business-pro": 500 * 1024 * 1024 * 1024 * 1024,
+      "business-infinity": 1000 * 1024 * 1024 * 1024 * 1024,
+    };
+    return limits[plan] || FREE_PLAN_LIMIT;
+  } catch { return FREE_PLAN_LIMIT; }
+}
 
-        // Archivo >15 MB → intentar Puter
-        await this.initPuter();
-        if (this.puterReady) {
-            console.log(`☁️ Puter.js: ${file.name} (${Utils.formatBytes(file.size)})`);
-            return await this._uploadToPuter(userId, file, onProgress);
-        }
+// ===== FILE TO BASE64 =====
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
-        throw new Error('El archivo supera 15 MB y Puter.js no está disponible. Usa un archivo más pequeño o abre ShareIt desde puter.com.');
-    },
-
-    // ── Base64 ────────────────────────────────────────────────────────────
-    _uploadAsBase64(userId, file, onProgress) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onprogress = e => {
-                if (onProgress && e.lengthComputable)
-                    onProgress(Math.round((e.loaded / e.total) * 90));
-            };
-
-            reader.onload = async e => {
-                try {
-                    const fileId = Utils.generateId();
-                    const fileData = {
-                        id: fileId,
-                        name: Utils.sanitizeFileName(file.name) || file.name,
-                        originalName: file.name,
-                        type: file.type || 'application/octet-stream',
-                        size: file.size,
-                        base64Url: e.target.result,
-                        storageMethod: 'base64',
-                        userId,
-                        parentFolder: (typeof UI !== 'undefined' ? UI.currentFolder : null) || null,
-                        inTrash: false,
-                        starred: false,
-                        shared: false,
-                        createdAt: firebase.database.ServerValue.TIMESTAMP,
-                        updatedAt: firebase.database.ServerValue.TIMESTAMP
-                    };
-
-                    await Database.createFile(userId, fileData);
-                    await Database.updateStorageUsed(userId);
-
-                    if (onProgress) onProgress(100);
-                    resolve(fileData);
-                } catch (err) {
-                    reject(err);
-                }
-            };
-
-            reader.onerror = () => reject(new Error('Error al leer el archivo'));
-            reader.readAsDataURL(file);
-        });
-    },
-
-    // ── Puter.js ──────────────────────────────────────────────────────────
-    async _uploadToPuter(userId, file, onProgress) {
-        if (onProgress) onProgress(5);
-
-        // Carpeta del usuario en Puter
-        const userFolder = `/shareit_${userId}`;
-        try { await puter.fs.mkdir(userFolder, { overwrite: false }); } catch (_) { /* ya existe */ }
-
-        if (onProgress) onProgress(10);
-
-        const safeName = `${Date.now()}_${file.name.replace(/[^\w.\-]/g, '_')}`;
-        const destPath = `${userFolder}/${safeName}`;
-
-        // puter.fs.write acepta File/Blob directamente
-        let uploadResult;
-        try {
-            uploadResult = await puter.fs.write(destPath, file, { overwrite: true });
-            if (onProgress) onProgress(90);
-        } catch (writeErr) {
-            // Fallback: intentar con upload() si existe
-            if (puter.fs.upload) {
-                uploadResult = await puter.fs.upload(file, destPath, {
-                    overwrite: true,
-                    onProgress: p => {
-                        if (onProgress) onProgress(10 + Math.round((p.percent || 0) * 0.8));
-                    }
-                });
-            } else {
-                throw writeErr;
-            }
-        }
-
-        if (onProgress) onProgress(95);
-
-        const fileId = Utils.generateId();
-        const fileData = {
-            id: fileId,
-            name: Utils.sanitizeFileName(file.name) || file.name,
-            originalName: file.name,
-            type: file.type || 'application/octet-stream',
-            size: file.size,
-            puterPath: destPath,
-            puterFileId: uploadResult?.uid || uploadResult?.id || fileId,
-            storageMethod: 'puter',
-            userId,
-            parentFolder: (typeof UI !== 'undefined' ? UI.currentFolder : null) || null,
-            inTrash: false,
-            starred: false,
-            shared: false,
-            createdAt: firebase.database.ServerValue.TIMESTAMP,
-            updatedAt: firebase.database.ServerValue.TIMESTAMP
-        };
-
-        await Database.createFile(userId, fileData);
-        await Database.updateStorageUsed(userId);
-
-        if (onProgress) onProgress(100);
-        return fileData;
-    },
-
-    // ── Obtener URL para preview/descarga ────────────────────────────────
-    async getFileUrl(fileData) {
-        if (!fileData) return null;
-
-        if (fileData.storageMethod === 'base64' && fileData.base64Url)
-            return fileData.base64Url;
-
-        if (fileData.storageMethod === 'puter' && fileData.puterPath) {
-            if (!this.puterReady) await this.initPuter();
-            if (!this.puterReady) return null;
-
-            try {
-                // Intentar obtener URL de descarga pública
-                if (puter.fs.getDownloadUrl) {
-                    return await puter.fs.getDownloadUrl(fileData.puterPath);
-                }
-                // Alternativa: leer como blob y crear object URL
-                const blob = await puter.fs.read(fileData.puterPath);
-                if (blob instanceof Blob || blob instanceof File) {
-                    return URL.createObjectURL(blob);
-                }
-                // Si devuelve texto (base64 o url)
-                if (typeof blob === 'string') return blob;
-            } catch (err) {
-                console.warn('No se pudo obtener URL de Puter:', err.message);
-            }
-            return null;
-        }
-
-        return null;
-    },
-
-    // ── Descargar archivo ────────────────────────────────────────────────
-    async downloadFile(fileData) {
-        if (!fileData) return;
-        const url = await this.getFileUrl(fileData);
-        if (!url) {
-            UI.showNotification('No se puede acceder al archivo', 'error');
-            return;
-        }
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileData.originalName || fileData.name;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            // Liberar object URL si la creamos nosotros
-            if (url.startsWith('blob:')) URL.revokeObjectURL(url);
-        }, 1000);
-    },
-
-    // ── Eliminar permanentemente ─────────────────────────────────────────
-    async deleteFilePermanently(userId, fileData) {
-        if (fileData.storageMethod === 'puter' && fileData.puterPath) {
-            if (!this.puterReady) await this.initPuter();
-            if (this.puterReady) {
-                try { await puter.fs.delete(fileData.puterPath); } catch (_) {}
-            }
-        }
-        await Database.deleteFile(userId, fileData.id);
-        await Database.updateStorageUsed(userId);
-    },
-
-    // ── Verificar espacio disponible ─────────────────────────────────────
-    async checkSpaceAvailable(userId, newFileSize) {
-        try {
-            const profile = await Database.getUserProfile(userId);
-            if (!profile) return true; // primera vez, dejar pasar
-            const planId   = profile.plan || 'PERSONAL_GRATUITO';
-            const maxStore = PLANS.getStorageLimit(planId);
-            const used     = profile.storageUsed || 0;
-            return (used + newFileSize) <= maxStore;
-        } catch {
-            return true;
-        }
+// ===== UPLOAD VIA PUTER.JS =====
+async function uploadToPuter(file, uid, fileId) {
+  return new Promise((resolve, reject) => {
+    // Puter.js SDK – loaded from CDN in HTML
+    if (typeof puter === "undefined") {
+      reject(new Error("Puter.js no disponible"));
+      return;
     }
-};
+    const path = `shareit/${uid}/${fileId}_${file.name}`;
+    puter.fs.write(path, file, { overwrite: true })
+      .then(puterFile => {
+        resolve({ type: "puter", path, name: puterFile.name });
+      })
+      .catch(reject);
+  });
+}
 
-// Intentar init de Puter después de que el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => StorageManager.initPuter(), 2000);
-});
+// ===== MAIN UPLOAD FUNCTION =====
+export async function uploadFile(file, uid, parentPath, onProgress) {
+  if (!uid || uid === "anon") {
+    showToast("Los usuarios anónimos no pueden subir archivos.");
+    throw new Error("Anonymous");
+  }
 
-console.log('☁️ StorageManager cargado');
+  const used = await getStorageUsage(uid);
+  const limit = await getStorageLimit(uid);
+
+  if (used + file.size > limit) {
+    showToast("⚠️ Has alcanzado tu límite de almacenamiento.");
+    throw new Error("StorageFull");
+  }
+
+  const filesRef = userRef(uid, "files");
+  const newRef = push(filesRef);
+  const fileId = newRef.key;
+
+  let storageData = {};
+
+  onProgress?.(0);
+
+  if (file.size <= SMALL_FILE_LIMIT) {
+    // Store as base64 in Realtime DB
+    const base64 = await fileToBase64(file);
+    storageData = { type: "base64", data: base64 };
+    onProgress?.(80);
+  } else {
+    // Store via Puter.js
+    try {
+      const puterResult = await uploadToPuter(file, uid, fileId);
+      storageData = puterResult;
+      onProgress?.(80);
+    } catch (err) {
+      // Fallback: still try base64 (may fail for very large files)
+      console.warn("Puter upload failed, attempting base64:", err);
+      const base64 = await fileToBase64(file);
+      storageData = { type: "base64", data: base64 };
+      onProgress?.(80);
+    }
+  }
+
+  const fileRecord = {
+    id: fileId,
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    parent: parentPath || "root",
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
+    starred: false,
+    shared: false,
+    shareToken: null,
+    trashed: false,
+    storage: storageData,
+  };
+
+  await set(newRef, fileRecord);
+  await updateStorageUsage(uid, file.size);
+  onProgress?.(100);
+  return fileRecord;
+}
+
+// ===== CREATE FOLDER =====
+export async function createFolderRecord(uid, name, parentPath) {
+  const foldersRef = userRef(uid, "files");
+  const newRef = push(foldersRef);
+  const folderId = newRef.key;
+
+  const folder = {
+    id: folderId,
+    name,
+    type: "folder",
+    size: 0,
+    parent: parentPath || "root",
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
+    starred: false,
+    shared: false,
+    shareToken: null,
+    trashed: false,
+  };
+
+  await set(newRef, folder);
+  return folder;
+}
+
+// ===== LISTEN TO FILES =====
+export function listenToFiles(uid, callback) {
+  const filesRef = userRef(uid, "files");
+  const handler = snapshot => {
+    const files = [];
+    snapshot.forEach(child => {
+      files.push({ ...child.val(), _key: child.key });
+    });
+    callback(files);
+  };
+  onValue(filesRef, handler);
+  return () => off(filesRef, "value", handler);
+}
+
+// ===== UPDATE FILE =====
+export async function updateFile(uid, fileId, data) {
+  await update(userRef(uid, `files/${fileId}`), { ...data, modifiedAt: Date.now() });
+}
+
+// ===== TRASH FILE =====
+export async function trashFile(uid, fileId) {
+  await update(userRef(uid, `files/${fileId}`), { trashed: true, modifiedAt: Date.now() });
+}
+
+// ===== RESTORE FILE =====
+export async function restoreFile(uid, fileId) {
+  await update(userRef(uid, `files/${fileId}`), { trashed: false, modifiedAt: Date.now() });
+}
+
+// ===== PERMANENTLY DELETE =====
+export async function deleteFile(uid, fileId, fileSize) {
+  await remove(userRef(uid, `files/${fileId}`));
+  if (fileSize) await updateStorageUsage(uid, -fileSize);
+}
+
+// ===== GET FILE DATA (for preview/download) =====
+export async function getFileData(uid, fileId) {
+  const snap = await get(userRef(uid, `files/${fileId}`));
+  return snap.exists() ? snap.val() : null;
+}
+
+// ===== SHARE: SET TOKEN =====
+export async function setShareToken(uid, fileId, token, isPublic) {
+  await update(userRef(uid, `files/${fileId}`), {
+    shared: isPublic,
+    shareToken: token,
+    modifiedAt: Date.now()
+  });
+  if (isPublic && token) {
+    // Store in public share index
+    await set(ref(db, `shares/${token}`), { uid, fileId, createdAt: Date.now() });
+  }
+}
+
+// ===== GET SHARED FILE BY TOKEN =====
+export async function getSharedFile(token) {
+  const snap = await get(ref(db, `shares/${token}`));
+  if (!snap.exists()) return null;
+  const { uid, fileId } = snap.val();
+  return await getFileData(uid, fileId);
+}
+
+// ===== EMPTY TRASH =====
+export async function emptyTrash(uid, files) {
+  const trashed = files.filter(f => f.trashed);
+  for (const f of trashed) {
+    await deleteFile(uid, f.id, f.size);
+  }
+}
