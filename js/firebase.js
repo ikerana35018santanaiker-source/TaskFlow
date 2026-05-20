@@ -9,9 +9,7 @@ const firebaseConfig = {
 };
 
 // Solo inicializar una vez
-if (!firebase.apps || firebase.apps.length === 0) {
-    firebase.initializeApp(firebaseConfig);
-}
+firebase.initializeApp(firebaseConfig);
 
 // Referencias globales
 const auth = firebase.auth();
