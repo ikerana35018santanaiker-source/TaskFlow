@@ -310,3 +310,8 @@ Contributions are welcome.
 # License
 
 This project is licensed under the MIT License
+
+# Permissions
+
+This project is private, if you want to tale a file or something, you have to contact with me, the creator.
+Discord: Iker Santana
