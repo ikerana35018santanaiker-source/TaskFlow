@@ -1,424 +1,600 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShareIt — Tu nube, sin límites</title>
+  <title>TaskFlow — Modern Project Management</title>
+  <meta name="description" content="Gestión de proyectos moderna, rápida y colaborativa." />
+  <link rel="icon" type="image/svg+xml" href="public/favicon.svg" />
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/auth.css" />
-  <link rel="stylesheet" href="css/drive.css" />
-  <link rel="stylesheet" href="css/modals.css" />
-  <!-- Firebase -->
-  <script type="module" src="js/firebase.js"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="src/styles/variables.css" />
+  <link rel="stylesheet" href="src/styles/reset.css" />
+  <link rel="stylesheet" href="src/styles/base.css" />
+  <link rel="stylesheet" href="src/styles/auth.css" />
+  <link rel="stylesheet" href="src/styles/dashboard.css" />
+  <link rel="stylesheet" href="src/styles/board.css" />
+  <link rel="stylesheet" href="src/styles/modals.css" />
+  <link rel="stylesheet" href="src/styles/components.css" />
+  <link rel="stylesheet" href="src/styles/animations.css" />
+  <link rel="stylesheet" href="src/styles/responsive.css" />
 </head>
 <body>
 
-  <!-- ===== SPLASH / LANDING ===== -->
-  <div id="splash-screen" class="screen active">
-    <div class="splash-bg">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-      <div class="blob blob-3"></div>
-    </div>
-    <div class="splash-content">
-      <div class="logo-mark">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="14" fill="var(--accent)"/>
-          <path d="M12 30 L24 18 L36 30" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M18 36 L24 30 L30 36" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+  <!-- ═══════════════════════════════════════
+       APP LOADER
+  ═══════════════════════════════════════ -->
+  <div id="app-loader" class="app-loader">
+    <div class="loader-content">
+      <div class="loader-logo">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect width="40" height="40" rx="10" fill="var(--accent)"/>
+          <path d="M10 14h20M10 20h14M10 26h17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
         </svg>
-        <span class="logo-text">ShareIt</span>
+        <span>TaskFlow</span>
       </div>
-      <h1 class="splash-title">Tu nube,<br/><em>sin límites.</em></h1>
-      <p class="splash-sub">Almacena, comparte y accede a tus archivos desde cualquier lugar.</p>
-      <div class="splash-actions">
-        <button class="btn-primary" onclick="showAuth('register')">Empezar gratis</button>
-        <button class="btn-ghost" onclick="showAuth('login')">Iniciar sesión</button>
-      </div>
-      <button class="btn-anon" onclick="enterAnonymous()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        Continuar anónimo
-      </button>
+      <div class="loader-bar"><div class="loader-bar-fill"></div></div>
     </div>
   </div>
 
-  <!-- ===== AUTH SCREEN ===== -->
-  <div id="auth-screen" class="screen">
-    <div class="auth-bg">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-    </div>
-    <div class="auth-panel">
-      <button class="back-btn" onclick="showScreen('splash-screen')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      </button>
-      <div class="auth-logo">
-        <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="14" fill="var(--accent)"/><path d="M12 30 L24 18 L36 30" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 36 L24 30 L30 36" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/></svg>
-        <span>ShareIt</span>
-      </div>
+  <!-- ═══════════════════════════════════════
+       TOAST CONTAINER
+  ═══════════════════════════════════════ -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-      <!-- Tab toggle -->
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Iniciar sesión</button>
-        <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Crear cuenta</button>
-      </div>
+  <!-- ═══════════════════════════════════════
+       MAIN APP
+  ═══════════════════════════════════════ -->
+  <div id="app" class="app hidden">
 
-      <!-- Login form -->
-      <div id="login-form" class="auth-form">
-        <div class="social-btns">
-          <button class="social-btn google-btn" onclick="loginWithGoogle()">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    <!-- AUTH VIEWS -->
+    <div id="auth-view" class="auth-view hidden">
+      <!-- Login -->
+      <div id="login-page" class="auth-page">
+        <div class="auth-bg">
+          <div class="auth-bg-grid"></div>
+          <div class="auth-bg-glow"></div>
+        </div>
+        <div class="auth-card">
+          <div class="auth-brand">
+            <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="var(--accent)"/>
+              <path d="M10 14h20M10 20h14M10 26h17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span>TaskFlow</span>
+          </div>
+          <h1 class="auth-title">Bienvenido de vuelta</h1>
+          <p class="auth-subtitle">Inicia sesión para continuar</p>
+
+          <button id="google-login-btn" class="btn-google">
+            <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
             Continuar con Google
           </button>
-          <button class="social-btn phone-btn" onclick="showPhoneAuth()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 9.82 19.79 19.79 0 01.04 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/></svg>
-            Continuar con teléfono
-          </button>
-        </div>
-        <div class="divider"><span>o</span></div>
-        <div class="field-group">
-          <label>Correo electrónico</label>
-          <input type="email" id="login-email" placeholder="tu@correo.com" />
-        </div>
-        <div class="field-group">
-          <label>Contraseña</label>
-          <input type="password" id="login-password" placeholder="••••••••" />
-          <a class="forgot-link" onclick="showEmailLinkAuth()">Acceder sin contraseña →</a>
-        </div>
-        <button class="btn-primary full" onclick="loginWithEmail()">Iniciar sesión</button>
-        <div id="login-error" class="auth-error"></div>
-      </div>
 
-      <!-- Register form -->
-      <div id="register-form" class="auth-form hidden">
-        <div class="social-btns">
-          <button class="social-btn google-btn" onclick="loginWithGoogle()">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            Registrarse con Google
-          </button>
-        </div>
-        <div class="divider"><span>o</span></div>
-        <div class="field-group">
-          <label>Nombre</label>
-          <input type="text" id="reg-name" placeholder="Tu nombre" />
-        </div>
-        <div class="field-group">
-          <label>Correo electrónico</label>
-          <input type="email" id="reg-email" placeholder="tu@correo.com" />
-        </div>
-        <div class="field-group">
-          <label>Contraseña</label>
-          <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" />
-        </div>
-        <button class="btn-primary full" onclick="registerWithEmail()">Crear cuenta</button>
-        <div id="register-error" class="auth-error"></div>
-      </div>
+          <div class="auth-divider"><span>o con email</span></div>
 
-      <!-- Phone auth step -->
-      <div id="phone-form" class="auth-form hidden">
-        <h3 style="margin-bottom:16px;font-family:var(--font-display);">Acceso por teléfono</h3>
-        <div class="field-group">
-          <label>Número de teléfono</label>
-          <input type="tel" id="phone-number" placeholder="+34 600 000 000" />
-        </div>
-        <div id="recaptcha-container"></div>
-        <button class="btn-primary full" onclick="sendPhoneCode()">Enviar código</button>
-        <div id="phone-code-step" class="hidden" style="margin-top:16px;">
-          <div class="field-group">
-            <label>Código de verificación</label>
-            <input type="text" id="phone-code" placeholder="123456" maxlength="6" />
-          </div>
-          <button class="btn-primary full" onclick="verifyPhoneCode()">Verificar</button>
-        </div>
-        <button class="btn-ghost full" style="margin-top:8px;" onclick="switchTab('login')">← Volver</button>
-        <div id="phone-error" class="auth-error"></div>
-      </div>
-
-      <!-- Email link step -->
-      <div id="emaillink-form" class="auth-form hidden">
-        <h3 style="margin-bottom:8px;font-family:var(--font-display);">Acceso por link</h3>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Te enviaremos un enlace mágico a tu correo.</p>
-        <div class="field-group">
-          <label>Correo electrónico</label>
-          <input type="email" id="emaillink-email" placeholder="tu@correo.com" />
-        </div>
-        <button class="btn-primary full" onclick="sendEmailLink()">Enviar enlace</button>
-        <button class="btn-ghost full" style="margin-top:8px;" onclick="switchTab('login')">← Volver</button>
-        <div id="emaillink-msg" class="auth-error" style="color:var(--accent);"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== DRIVE SCREEN ===== -->
-  <div id="drive-screen" class="screen">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <svg width="28" height="28" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="14" fill="var(--accent)"/><path d="M12 30 L24 18 L36 30" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 36 L24 30 L30 36" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/></svg>
-        <span>ShareIt</span>
-      </div>
-
-      <button class="new-btn" onclick="showNewMenu()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nuevo
-      </button>
-
-      <nav class="sidebar-nav">
-        <a class="nav-item active" onclick="navigateTo('my-drive')" data-section="my-drive">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          Mi unidad
-        </a>
-        <a class="nav-item" onclick="navigateTo('shared')" data-section="shared">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          Compartidos conmigo
-        </a>
-        <a class="nav-item" onclick="navigateTo('starred')" data-section="starred">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          Destacados
-        </a>
-        <a class="nav-item" onclick="navigateTo('backup')" data-section="backup">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-          Copias de seguridad
-        </a>
-        <a class="nav-item" onclick="navigateTo('trash')" data-section="trash">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-          Papelera
-        </a>
-      </nav>
-
-      <div class="storage-widget">
-        <div class="storage-label">
-          <span>Almacenamiento</span>
-          <span id="storage-used-label">0 GB de 15 GB</span>
-        </div>
-        <div class="storage-bar">
-          <div class="storage-fill" id="storage-fill" style="width:0%"></div>
-        </div>
-        <button class="upgrade-btn" onclick="showPlans()">Ampliar espacio →</button>
-      </div>
-
-      <div class="sidebar-user" id="sidebar-user">
-        <div class="user-avatar" id="user-avatar">?</div>
-        <div class="user-info">
-          <span id="user-display-name">Usuario</span>
-          <span id="user-email-short">—</span>
-        </div>
-        <button class="logout-btn" onclick="logoutUser()" title="Cerrar sesión">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
-      </div>
-    </aside>
-
-    <!-- Main content -->
-    <main class="drive-main">
-      <!-- Top bar -->
-      <header class="drive-header">
-        <button class="sidebar-toggle" onclick="toggleSidebar()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        <div class="search-bar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="search-input" placeholder="Buscar en ShareIt..." oninput="searchFiles(this.value)" />
-        </div>
-        <div class="header-actions">
-          <button class="icon-btn" onclick="toggleView()" id="view-toggle-btn" title="Cambiar vista">
-            <svg id="view-icon-grid" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            <svg id="view-icon-list" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          </button>
-          <button class="icon-btn" onclick="showSettingsModal()" title="Ajustes">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <!-- Breadcrumb -->
-      <div class="breadcrumb" id="breadcrumb">
-        <span class="crumb active" onclick="navigateTo('my-drive')">Mi unidad</span>
-      </div>
-
-      <!-- Drop zone overlay -->
-      <div class="drop-overlay" id="drop-overlay">
-        <div class="drop-message">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <p>Suelta para subir</p>
-        </div>
-      </div>
-
-      <!-- File grid/list -->
-      <div class="files-container" id="files-container">
-        <div id="section-title" class="section-title">Mi unidad</div>
-        <div id="files-empty" class="files-empty hidden">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-          <p>Nada por aquí todavía</p>
-          <span>Sube o crea algo nuevo</span>
-        </div>
-        <div id="files-grid" class="files-grid"></div>
-      </div>
-    </main>
-  </div>
-
-  <!-- ===== MODALS ===== -->
-
-  <!-- New item menu -->
-  <div id="new-menu" class="dropdown-menu hidden">
-    <button onclick="openUploadFile()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Subir archivo
-    </button>
-    <button onclick="openUploadFolder()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
-      Subir carpeta
-    </button>
-    <div class="menu-divider"></div>
-    <button onclick="createFolder()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-      Nueva carpeta
-    </button>
-  </div>
-
-  <!-- Context menu -->
-  <div id="context-menu" class="dropdown-menu hidden">
-    <button onclick="ctxOpen()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      Abrir / Ver
-    </button>
-    <button onclick="ctxShare()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      Compartir
-    </button>
-    <button onclick="ctxDownload()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Descargar
-    </button>
-    <button onclick="ctxRename()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      Renombrar
-    </button>
-    <button onclick="ctxStar()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      Destacar
-    </button>
-    <div class="menu-divider"></div>
-    <button onclick="ctxTrash()" style="color:#ff5f5f">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-      Mover a papelera
-    </button>
-  </div>
-
-  <!-- Share modal -->
-  <div id="share-modal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Compartir archivo</h3>
-        <button class="modal-close" onclick="closeModal('share-modal')">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-label">Enlace de acceso</p>
-        <div class="share-link-box">
-          <input type="text" id="share-link-input" readonly />
-          <button class="copy-btn" onclick="copyShareLink()" id="copy-btn">Copiar</button>
-        </div>
-        <div class="share-options">
-          <label class="toggle-label">
-            <span>Acceso público</span>
-            <div class="toggle" id="public-toggle" onclick="togglePublicAccess()">
-              <div class="toggle-thumb"></div>
+          <form id="login-form" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="login-email">Email</label>
+              <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email" required />
+              <span class="field-error" id="login-email-error"></span>
             </div>
-          </label>
-        </div>
-        <p class="share-note" id="share-status-note">Cualquiera con el link puede ver este archivo.</p>
-      </div>
-    </div>
-  </div>
+            <div class="form-group">
+              <label for="login-password">Contraseña</label>
+              <div class="input-password-wrap">
+                <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
+                <button type="button" class="toggle-password" aria-label="Ver contraseña">
+                  <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              <span class="field-error" id="login-password-error"></span>
+            </div>
+            <button type="button" id="forgot-password-link" class="link-btn">¿Olvidaste tu contraseña?</button>
+            <button type="submit" class="btn-primary btn-full" id="login-submit-btn">
+              <span class="btn-text">Iniciar sesión</span>
+              <span class="btn-loader hidden"></span>
+            </button>
+          </form>
 
-  <!-- Preview modal -->
-  <div id="preview-modal" class="modal-overlay hidden">
-    <div class="modal modal-large">
-      <div class="modal-header">
-        <h3 id="preview-filename">Vista previa</h3>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button class="icon-btn" onclick="downloadPreviewFile()" title="Descargar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <p class="auth-switch">¿No tienes cuenta? <button type="button" id="go-register" class="link-btn">Regístrate gratis</button></p>
+        </div>
+      </div>
+
+      <!-- Register -->
+      <div id="register-page" class="auth-page hidden">
+        <div class="auth-bg">
+          <div class="auth-bg-grid"></div>
+          <div class="auth-bg-glow"></div>
+        </div>
+        <div class="auth-card">
+          <div class="auth-brand">
+            <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="var(--accent)"/>
+              <path d="M10 14h20M10 20h14M10 26h17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span>TaskFlow</span>
+          </div>
+          <h1 class="auth-title">Crear cuenta</h1>
+          <p class="auth-subtitle">Empieza gratis hoy</p>
+
+          <button id="google-register-btn" class="btn-google">
+            <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+            Continuar con Google
           </button>
-          <button class="modal-close" onclick="closeModal('preview-modal')">✕</button>
+
+          <div class="auth-divider"><span>o con email</span></div>
+
+          <form id="register-form" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="register-name">Nombre completo</label>
+              <input type="text" id="register-name" placeholder="Tu nombre" autocomplete="name" required />
+              <span class="field-error" id="register-name-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="register-email">Email</label>
+              <input type="email" id="register-email" placeholder="tu@email.com" autocomplete="email" required />
+              <span class="field-error" id="register-email-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="register-password">Contraseña</label>
+              <div class="input-password-wrap">
+                <input type="password" id="register-password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" required />
+                <button type="button" class="toggle-password" aria-label="Ver contraseña">
+                  <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              <div class="password-strength" id="password-strength"></div>
+              <span class="field-error" id="register-password-error"></span>
+            </div>
+            <button type="submit" class="btn-primary btn-full" id="register-submit-btn">
+              <span class="btn-text">Crear cuenta</span>
+              <span class="btn-loader hidden"></span>
+            </button>
+          </form>
+
+          <p class="auth-switch">¿Ya tienes cuenta? <button type="button" id="go-login" class="link-btn">Iniciar sesión</button></p>
         </div>
       </div>
-      <div class="modal-body preview-body" id="preview-body"></div>
+
+      <!-- Forgot Password -->
+      <div id="forgot-page" class="auth-page hidden">
+        <div class="auth-bg">
+          <div class="auth-bg-grid"></div>
+          <div class="auth-bg-glow"></div>
+        </div>
+        <div class="auth-card">
+          <div class="auth-brand">
+            <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="var(--accent)"/>
+              <path d="M10 14h20M10 20h14M10 26h17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span>TaskFlow</span>
+          </div>
+          <h1 class="auth-title">Recuperar contraseña</h1>
+          <p class="auth-subtitle">Te enviaremos un enlace de recuperación</p>
+
+          <form id="forgot-form" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="forgot-email">Email</label>
+              <input type="email" id="forgot-email" placeholder="tu@email.com" autocomplete="email" required />
+              <span class="field-error" id="forgot-email-error"></span>
+            </div>
+            <button type="submit" class="btn-primary btn-full" id="forgot-submit-btn">
+              <span class="btn-text">Enviar enlace</span>
+              <span class="btn-loader hidden"></span>
+            </button>
+          </form>
+
+          <p class="auth-switch"><button type="button" id="go-login-from-forgot" class="link-btn">← Volver al login</button></p>
+        </div>
+      </div>
     </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboard-view" class="dashboard-view hidden">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-brand">
+            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="var(--accent)"/>
+              <path d="M10 14h20M10 20h14M10 26h17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span>TaskFlow</span>
+          </div>
+          <button class="sidebar-close" id="sidebar-close" aria-label="Cerrar sidebar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <nav class="sidebar-nav">
+          <div class="nav-section">
+            <span class="nav-label">Principal</span>
+            <a href="#" class="nav-item active" data-view="boards">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              Mis Boards
+            </a>
+            <a href="#" class="nav-item" data-view="all-tasks">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Todas las tareas
+            </a>
+          </div>
+
+          <div class="nav-section">
+            <span class="nav-label">Mis Boards</span>
+            <div id="sidebar-boards-list" class="sidebar-boards-list">
+              <!-- Dynamic boards -->
+            </div>
+            <button class="nav-item nav-add" id="create-board-sidebar-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo board
+            </button>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="theme-toggle">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <span>Tema</span>
+            <button class="theme-switch" id="theme-toggle" role="switch" aria-label="Cambiar tema">
+              <span class="theme-switch-thumb"></span>
+            </button>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Sidebar Overlay -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Header -->
+        <header class="app-header">
+          <div class="header-left">
+            <button class="hamburger" id="hamburger" aria-label="Abrir sidebar">
+              <span></span><span></span><span></span>
+            </button>
+            <div class="breadcrumb" id="breadcrumb">
+              <span>Mis Boards</span>
+            </div>
+          </div>
+          <div class="header-center">
+            <div class="search-bar" id="search-bar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="global-search" placeholder="Buscar tareas..." autocomplete="off" />
+              <kbd>⌘K</kbd>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="priority-filter" id="priority-filter-wrap">
+              <select id="priority-filter" class="filter-select">
+                <option value="">Todas las prioridades</option>
+                <option value="critical">🔴 Crítica</option>
+                <option value="high">🟠 Alta</option>
+                <option value="medium">🟡 Media</option>
+                <option value="low">🟢 Baja</option>
+              </select>
+            </div>
+            <div class="user-menu" id="user-menu">
+              <div class="user-avatar" id="user-avatar-btn">
+                <span id="user-initials">--</span>
+              </div>
+              <div class="user-dropdown hidden" id="user-dropdown">
+                <div class="user-info">
+                  <strong id="dropdown-user-name">Usuario</strong>
+                  <span id="dropdown-user-email">email@example.com</span>
+                </div>
+                <hr />
+                <button class="dropdown-item" id="profile-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  Perfil
+                </button>
+                <button class="dropdown-item danger" id="logout-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Pages -->
+        <main class="page-container">
+          <!-- Boards Home -->
+          <section id="boards-page" class="page active">
+            <div class="page-header">
+              <div>
+                <h2 class="page-title">Mis Boards</h2>
+                <p class="page-subtitle" id="boards-count-text">Cargando...</p>
+              </div>
+              <button class="btn-primary" id="create-board-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nuevo board
+              </button>
+            </div>
+            <div id="boards-grid" class="boards-grid">
+              <!-- Dynamic boards -->
+            </div>
+            <div id="boards-empty" class="empty-state hidden">
+              <div class="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </div>
+              <h3>Ningún board aún</h3>
+              <p>Crea tu primer board para organizar tu trabajo</p>
+              <button class="btn-primary" id="create-first-board-btn">Crear primer board</button>
+            </div>
+          </section>
+
+          <!-- Board Detail -->
+          <section id="board-page" class="page hidden">
+            <div class="board-header">
+              <div class="board-header-left">
+                <button class="back-btn" id="back-to-boards">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+                </button>
+                <div class="board-title-wrap">
+                  <div class="board-color-dot" id="board-color-dot"></div>
+                  <h2 class="board-title" id="board-title-display">Board</h2>
+                </div>
+              </div>
+              <div class="board-header-actions">
+                <button class="btn-ghost" id="edit-board-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Editar
+                </button>
+                <button class="btn-ghost danger" id="delete-board-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  Eliminar
+                </button>
+              </div>
+            </div>
+
+            <!-- Columns Container -->
+            <div class="board-canvas" id="board-canvas">
+              <div class="columns-container" id="columns-container">
+                <!-- Dynamic columns -->
+              </div>
+              <div class="add-column-wrap">
+                <button class="add-column-btn" id="add-column-btn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Agregar columna
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- All Tasks Page -->
+          <section id="all-tasks-page" class="page hidden">
+            <div class="page-header">
+              <div>
+                <h2 class="page-title">Todas las tareas</h2>
+                <p class="page-subtitle" id="all-tasks-count-text">Cargando...</p>
+              </div>
+            </div>
+            <div id="all-tasks-list" class="all-tasks-list"></div>
+            <div id="all-tasks-empty" class="empty-state hidden">
+              <div class="empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+              <h3>No hay tareas</h3>
+              <p>Crea boards y agrega tareas para verlas aquí</p>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Rename modal -->
-  <div id="rename-modal" class="modal-overlay hidden">
-    <div class="modal modal-sm">
+  <!-- ═══════════════════════════════════════
+       MODALS
+  ═══════════════════════════════════════ -->
+
+  <!-- Create/Edit Board Modal -->
+  <div class="modal-overlay hidden" id="board-modal-overlay">
+    <div class="modal" id="board-modal" role="dialog" aria-modal="true">
       <div class="modal-header">
-        <h3>Renombrar</h3>
-        <button class="modal-close" onclick="closeModal('rename-modal')">✕</button>
+        <h3 id="board-modal-title">Nuevo Board</h3>
+        <button class="modal-close" id="board-modal-close" aria-label="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
       </div>
       <div class="modal-body">
-        <div class="field-group">
-          <label>Nuevo nombre</label>
-          <input type="text" id="rename-input" onkeydown="if(event.key==='Enter')confirmRename()" />
+        <div class="form-group">
+          <label>Nombre del board</label>
+          <input type="text" id="board-name-input" placeholder="Ej: Proyecto Web, Marketing Q1..." maxlength="60" />
         </div>
-        <button class="btn-primary full" onclick="confirmRename()">Renombrar</button>
+        <div class="form-group">
+          <label>Descripción (opcional)</label>
+          <textarea id="board-desc-input" placeholder="Descripción del board..." rows="3" maxlength="200"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Color</label>
+          <div class="color-picker" id="board-color-picker">
+            <button class="color-swatch active" data-color="#6366f1" style="background:#6366f1"></button>
+            <button class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+            <button class="color-swatch" data-color="#ec4899" style="background:#ec4899"></button>
+            <button class="color-swatch" data-color="#ef4444" style="background:#ef4444"></button>
+            <button class="color-swatch" data-color="#f97316" style="background:#f97316"></button>
+            <button class="color-swatch" data-color="#eab308" style="background:#eab308"></button>
+            <button class="color-swatch" data-color="#22c55e" style="background:#22c55e"></button>
+            <button class="color-swatch" data-color="#06b6d4" style="background:#06b6d4"></button>
+            <button class="color-swatch" data-color="#3b82f6" style="background:#3b82f6"></button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="board-modal-cancel">Cancelar</button>
+        <button class="btn-primary" id="board-modal-save">
+          <span class="btn-text">Crear board</span>
+          <span class="btn-loader hidden"></span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Create folder modal -->
-  <div id="folder-modal" class="modal-overlay hidden">
-    <div class="modal modal-sm">
+  <!-- Task Detail Modal -->
+  <div class="modal-overlay hidden" id="task-modal-overlay">
+    <div class="modal modal-large" id="task-modal" role="dialog" aria-modal="true">
       <div class="modal-header">
-        <h3>Nueva carpeta</h3>
-        <button class="modal-close" onclick="closeModal('folder-modal')">✕</button>
+        <h3 id="task-modal-title">Nueva Tarea</h3>
+        <button class="modal-close" id="task-modal-close" aria-label="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body modal-body-grid">
+        <div class="task-main">
+          <div class="form-group">
+            <label>Título *</label>
+            <input type="text" id="task-title-input" placeholder="Nombre de la tarea..." maxlength="100" />
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea id="task-desc-input" placeholder="Agrega más contexto sobre esta tarea..." rows="4" maxlength="1000"></textarea>
+          </div>
+          <!-- Checklist -->
+          <div class="form-group">
+            <label>Checklist</label>
+            <div id="checklist-container" class="checklist-container"></div>
+            <button class="btn-ghost btn-sm" id="add-checklist-item-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar ítem
+            </button>
+          </div>
+        </div>
+        <div class="task-sidebar-detail">
+          <!-- Priority -->
+          <div class="form-group">
+            <label>Prioridad</label>
+            <select id="task-priority-input" class="select-input">
+              <option value="low">🟢 Baja</option>
+              <option value="medium" selected>🟡 Media</option>
+              <option value="high">🟠 Alta</option>
+              <option value="critical">🔴 Crítica</option>
+            </select>
+          </div>
+          <!-- Due Date -->
+          <div class="form-group">
+            <label>Fecha límite</label>
+            <input type="date" id="task-due-input" class="select-input" />
+          </div>
+          <!-- Status -->
+          <div class="form-group">
+            <label>Estado</label>
+            <div class="toggle-group">
+              <input type="checkbox" id="task-completed-input" class="toggle-checkbox" />
+              <label for="task-completed-input" class="toggle-label">Tarea completada</label>
+            </div>
+          </div>
+          <!-- Tags -->
+          <div class="form-group">
+            <label>Etiquetas</label>
+            <div class="tags-input-wrap">
+              <div id="tags-display" class="tags-display"></div>
+              <input type="text" id="tag-input" placeholder="Escribe y presiona Enter..." maxlength="20" />
+            </div>
+            <div class="tag-colors" id="tag-colors">
+              <button class="tag-color-btn active" data-color="#6366f1" style="background:#6366f1"></button>
+              <button class="tag-color-btn" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+              <button class="tag-color-btn" data-color="#ec4899" style="background:#ec4899"></button>
+              <button class="tag-color-btn" data-color="#ef4444" style="background:#ef4444"></button>
+              <button class="tag-color-btn" data-color="#f97316" style="background:#f97316"></button>
+              <button class="tag-color-btn" data-color="#22c55e" style="background:#22c55e"></button>
+              <button class="tag-color-btn" data-color="#06b6d4" style="background:#06b6d4"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost danger hidden" id="task-delete-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Eliminar
+        </button>
+        <div class="modal-footer-right">
+          <button class="btn-ghost" id="task-modal-cancel">Cancelar</button>
+          <button class="btn-primary" id="task-modal-save">
+            <span class="btn-text">Guardar tarea</span>
+            <span class="btn-loader hidden"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-overlay hidden" id="confirm-modal-overlay">
+    <div class="modal modal-sm" id="confirm-modal" role="alertdialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="confirm-modal-title">Confirmar eliminación</h3>
       </div>
       <div class="modal-body">
-        <div class="field-group">
-          <label>Nombre de la carpeta</label>
-          <input type="text" id="folder-name-input" placeholder="Sin título" onkeydown="if(event.key==='Enter')confirmCreateFolder()" />
-        </div>
-        <button class="btn-primary full" onclick="confirmCreateFolder()">Crear</button>
+        <p id="confirm-modal-message">¿Estás seguro de que quieres eliminar esto?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="confirm-cancel-btn">Cancelar</button>
+        <button class="btn-danger" id="confirm-ok-btn">Eliminar</button>
       </div>
     </div>
   </div>
 
-  <!-- Plans modal -->
-  <div id="plans-modal" class="modal-overlay hidden">
-    <div class="modal modal-plans">
+  <!-- Profile Modal -->
+  <div class="modal-overlay hidden" id="profile-modal-overlay">
+    <div class="modal" id="profile-modal" role="dialog" aria-modal="true">
       <div class="modal-header">
-        <h3>Elige tu plan</h3>
-        <button class="modal-close" onclick="closeModal('plans-modal')">✕</button>
+        <h3>Mi perfil</h3>
+        <button class="modal-close" id="profile-modal-close" aria-label="Cerrar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
       </div>
       <div class="modal-body">
-        <div class="plans-toggle">
-          <button class="plan-period-btn active" onclick="setPeriod('monthly')">Mensual</button>
-          <button class="plan-period-btn" onclick="setPeriod('annual')">Anual</button>
+        <div class="profile-avatar-section">
+          <div class="profile-avatar-large" id="profile-avatar-large">
+            <span id="profile-initials-large">--</span>
+          </div>
         </div>
-        <div class="plans-grid">
-          <!-- populated by JS -->
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="profile-name-input" placeholder="Tu nombre" />
         </div>
-        <p class="plans-note">* Los pagos no están disponibles por ahora. Próximamente.</p>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="profile-email-display" disabled />
+        </div>
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="stat-boards">0</span>
+            <span class="stat-label">Boards</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-tasks">0</span>
+            <span class="stat-label">Tareas</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-done">0</span>
+            <span class="stat-label">Completadas</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="profile-cancel-btn">Cancelar</button>
+        <button class="btn-primary" id="profile-save-btn">
+          <span class="btn-text">Guardar cambios</span>
+          <span class="btn-loader hidden"></span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Upload progress -->
-  <div id="upload-toast" class="upload-toast hidden">
-    <div class="toast-header">
-      <span>Subiendo archivos</span>
-      <button onclick="closeUploadToast()">✕</button>
-    </div>
-    <div id="upload-list"></div>
-  </div>
-
-  <!-- Toast notification -->
-  <div id="toast" class="toast hidden"></div>
-
-  <!-- Hidden file inputs -->
-  <input type="file" id="file-input" multiple style="display:none" onchange="handleFileUpload(this.files)" />
-  <input type="file" id="folder-input" webkitdirectory multiple style="display:none" onchange="handleFileUpload(this.files)" />
-
-  <script type="module" src="js/app.js"></script>
+  <!-- ═══════════════════════════════════════
+       FIREBASE SDK
+  ═══════════════════════════════════════ -->
+  <script type="module" src="src/firebase-config.js"></script>
+  <script type="module" src="src/app.js"></script>
 </body>
 </html>
