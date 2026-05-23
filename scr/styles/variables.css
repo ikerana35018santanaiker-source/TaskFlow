@@ -1,0 +1,106 @@
+/* ═══════════════════════════════════════════════════
+   TASKFLOW — Design Tokens
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  /* Brand */
+  --accent: #6366f1;
+  --accent-hover: #5254cc;
+  --accent-light: rgba(99, 102, 241, 0.12);
+  --accent-glow: rgba(99, 102, 241, 0.25);
+
+  /* Typography */
+  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-index scale */
+  --z-base: 1;
+  --z-sticky: 10;
+  --z-sidebar: 100;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-loader: 500;
+
+  /* Spacing */
+  --sidebar-w: 256px;
+}
+
+/* ─── DARK THEME (default) ─── */
+[data-theme="dark"] {
+  --bg-base: #0f0f14;
+  --bg-surface: #16161e;
+  --bg-elevated: #1c1c27;
+  --bg-hover: rgba(255,255,255,0.04);
+  --bg-active: rgba(99, 102, 241, 0.1);
+
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+
+  --text-primary: #e8e8f0;
+  --text-secondary: #8b8ba8;
+  --text-muted: #555570;
+  --text-inverse: #0f0f14;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.6);
+  --shadow-glow: 0 0 24px var(--accent-glow);
+
+  --scrollbar-thumb: rgba(255,255,255,0.1);
+  --scrollbar-track: transparent;
+
+  /* Column colors */
+  --col-bg: #1c1c27;
+  --card-bg: #1e1e2c;
+  --card-hover: #222234;
+}
+
+/* ─── LIGHT THEME ─── */
+[data-theme="light"] {
+  --bg-base: #f5f5fa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f0f0f8;
+  --bg-hover: rgba(0,0,0,0.03);
+  --bg-active: rgba(99, 102, 241, 0.08);
+
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.14);
+
+  --text-primary: #1a1a2e;
+  --text-secondary: #555570;
+  --text-muted: #9999b8;
+  --text-inverse: #ffffff;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.15);
+  --shadow-glow: 0 0 24px var(--accent-glow);
+
+  --scrollbar-thumb: rgba(0,0,0,0.15);
+  --scrollbar-track: transparent;
+
+  --col-bg: #ebebf5;
+  --card-bg: #ffffff;
+  --card-hover: #f8f8ff;
+}
+
+/* ─── Priority colors ─── */
+:root {
+  --priority-low: #22c55e;
+  --priority-medium: #eab308;
+  --priority-high: #f97316;
+  --priority-critical: #ef4444;
+}
